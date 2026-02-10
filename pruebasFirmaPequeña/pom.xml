@@ -9,7 +9,7 @@
     <version>1.0.0</version>
     <packaging>jar</packaging>
     
-    <name>Pruebas Firma Pequeña</name>
+    <name>Pruebas Firma Pequena</name>
     <description>Proyecto de pruebas para aplicaciones de firma digital</description>
 
     <properties>
@@ -61,9 +61,9 @@
         <!-- Docx4j para procesamiento de documentos Word (descomenta si necesitas procesar Word) -->
         <dependency>
             <groupId>org.docx4j</groupId>
-            <artifactId>docx4j</artifactId>
-            <version>8.3.8</version>
-        </dependency>
+            <artifactId>docx4j-core</artifactId>
+            <version>11.4.5</version>
+          </dependency>
     </dependencies>
 
     <build>
