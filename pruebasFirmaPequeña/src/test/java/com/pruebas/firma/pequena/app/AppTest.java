@@ -1,4 +1,4 @@
-package com.pruebasfirmapequeña.app;
+package com.pruebas.firma.pequena.app;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
