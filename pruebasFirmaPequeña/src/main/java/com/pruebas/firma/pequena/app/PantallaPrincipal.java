@@ -20,9 +20,11 @@ import java.io.IOException;
 import java.io.ByteArrayOutputStream;
 import java.util.function.Consumer;
 import javax.imageio.ImageIO;
-
-// Descomenta esta importación si añades la dependencia de docx4j
+// Importaciones docx4j - comentadas para evitar carga innecesaria
 // import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
+// import org.docx4j.wml.*;
+// import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
+import java.util.List;
 
 /**
  * Pantalla principal de la aplicación con interfaz gráfica
@@ -44,9 +46,11 @@ public class PantallaPrincipal extends JFrame {
     private JButton btnSeleccionar;
     private JButton btnProcesar;
     private JButton btnLimpiar;
-    private JTextField txtControlName;
     private JTextArea txtXmlInput;
     private JTextField txtTagName;
+    private JTextField txtControlName;
+    private JTree arbolComponentes;
+    private JScrollPane scrollArbol;
     private App app;
 
     /**
@@ -55,7 +59,7 @@ public class PantallaPrincipal extends JFrame {
     public PantallaPrincipal() {
         setTitle("Pruebas Firma Pequeña - Procesador XML");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(700, 600);
+        setSize(1400, 800);  // Anchura: 1400, Altura: 800
         setLocationRelativeTo(null);
         setResizable(true);
         
@@ -83,8 +87,8 @@ public class PantallaPrincipal extends JFrame {
         } else {
             txtTagName.setText("firmaPeq");
         }
-        
-        // Redirigir salida de consola a la interfaz
+        // Inicializar Content Control con valor por defecto
+        txtControlName.setText("imagenFirmaPeq");
         redirigirSalidaConsola();
         
         // Finalizar inicialización - ahora se puede guardar configuración
@@ -105,15 +109,68 @@ public class PantallaPrincipal extends JFrame {
         JPanel panelSeleccion = crearPanelSeleccion();
         panelPrincipal.add(panelSeleccion, BorderLayout.NORTH);
         
-        // Panel central - Información
-        JPanel panelInfo = crearPanelInfo();
-        panelPrincipal.add(panelInfo, BorderLayout.CENTER);
+        // Panel central - Árbol a la izquierda y el resto a la derecha
+        JPanel panelCentral = crearPanelCentral();
+        panelPrincipal.add(panelCentral, BorderLayout.CENTER);
         
         // Panel inferior - Botones
         JPanel panelBotones = crearPanelBotones();
         panelPrincipal.add(panelBotones, BorderLayout.SOUTH);
         
         setContentPane(panelPrincipal);
+    }
+
+    /**
+     * Crea el panel central con split entre árbol y contenido
+     */
+    private JPanel crearPanelCentral() {
+        JPanel panel = new JPanel(new BorderLayout());
+        
+        // Árbol de componentes a la izquierda
+        arbolComponentes = new JTree(new javax.swing.tree.DefaultMutableTreeNode("Estructura Word"));
+        arbolComponentes.setPreferredSize(new Dimension(250, 400));
+        scrollArbol = new JScrollPane(arbolComponentes);
+        scrollArbol.setBorder(BorderFactory.createTitledBorder("Estructura del Documento"));
+        
+        // Panel derecho con información e imagen
+        JPanel panelDerecha = new JPanel(new BorderLayout());
+        
+        // Panel de información
+        areaInfo = new JTextArea();
+        areaInfo.setEditable(false);
+        areaInfo.setLineWrap(true);
+        areaInfo.setWrapStyleWord(true);
+        areaInfo.setFont(new Font("Monospaced", Font.PLAIN, 10));
+        areaInfo.setText("Introduce XML y especifica la etiqueta a buscar.");
+        
+        JScrollPane scrollPane = new JScrollPane(areaInfo);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        scrollPane.setPreferredSize(new Dimension(400, 300));
+        scrollPane.setBorder(BorderFactory.createTitledBorder("Información del Documento"));
+        
+        // Panel inferior para la imagen
+        JPanel imagePanel = new JPanel(new BorderLayout());
+        imagePanel.setBorder(BorderFactory.createTitledBorder("Imagen Extraída"));
+        imagePanel.setPreferredSize(new Dimension(400, 100));
+        
+        labelImagen.setBorder(BorderFactory.createLineBorder(java.awt.Color.GRAY, 1));
+        labelImagen.setHorizontalAlignment(SwingConstants.CENTER);
+        labelImagen.setVerticalAlignment(SwingConstants.CENTER);
+        labelImagen.setPreferredSize(new Dimension(380, 80));
+        
+        imagePanel.add(labelImagen, BorderLayout.CENTER);
+        
+        panelDerecha.add(scrollPane, BorderLayout.CENTER);
+        panelDerecha.add(imagePanel, BorderLayout.SOUTH);
+        
+        // Split pane: árbol a la izquierda, contenido a la derecha
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, scrollArbol, panelDerecha);
+        splitPane.setDividerLocation(250);
+        splitPane.setResizeWeight(0.18);  // 18% para el árbol, 82% para el contenido
+        
+        panel.add(splitPane, BorderLayout.CENTER);
+        
+        return panel;
     }
 
     /**
@@ -130,6 +187,12 @@ public class PantallaPrincipal extends JFrame {
             public void changedUpdate(javax.swing.event.DocumentEvent e) { actualizarBotones(); guardarConfiguracion(); }
             public void removeUpdate(javax.swing.event.DocumentEvent e) { actualizarBotones(); guardarConfiguracion(); }
             public void insertUpdate(javax.swing.event.DocumentEvent e) { actualizarBotones(); guardarConfiguracion(); }
+        });
+        
+        txtControlName.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            public void changedUpdate(javax.swing.event.DocumentEvent e) { guardarConfiguracion(); }
+            public void removeUpdate(javax.swing.event.DocumentEvent e) { guardarConfiguracion(); }
+            public void insertUpdate(javax.swing.event.DocumentEvent e) { guardarConfiguracion(); }
         });
     }
 
@@ -165,21 +228,21 @@ public class PantallaPrincipal extends JFrame {
         gbc.gridwidth = 1;
         gbc.gridx = 0; gbc.gridy = 1; gbc.fill = GridBagConstraints.NONE; gbc.weightx = 0; gbc.weighty = 0;
         gbc.anchor = GridBagConstraints.WEST;
-        panel.add(new JLabel("Etiqueta a buscar:"), gbc);
+        panel.add(new JLabel("Etiqueta XML:"), gbc);
         
         gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1.0;
         txtTagName = new JTextField(20);
         // No establecer texto por defecto aquí - se hace después de configurar listeners
-        txtTagName.setToolTipText("Nombre de la etiqueta que contiene la imagen base64");
+        txtTagName.setToolTipText("Nombre de la etiqueta XML que contiene la imagen base64");
         panel.add(txtTagName, gbc);
         
         // Documento (opcional)
         gbc.gridx = 0; gbc.gridy = 2; gbc.anchor = GridBagConstraints.WEST;
-        panel.add(new JLabel("Documento (opcional):"), gbc);
+        panel.add(new JLabel("Documento .docx:"), gbc);
         
         gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1.0;
         labelArchivo = new JLabel("Ninguno");
-        labelArchivo.setForeground(Color.BLUE);
+        labelArchivo.setForeground(java.awt.Color.BLUE);
         labelArchivo.setFont(new Font("Arial", Font.BOLD, 11));
         panel.add(labelArchivo, gbc);
         
@@ -193,6 +256,16 @@ public class PantallaPrincipal extends JFrame {
         });
         panel.add(btnSeleccionar, gbc);
         
+        // Control Name (para Word)
+        gbc.gridx = 0; gbc.gridy = 3; gbc.fill = GridBagConstraints.NONE; gbc.weightx = 0;
+        gbc.anchor = GridBagConstraints.WEST;
+        panel.add(new JLabel("Etiqueta Content Control(docx):"), gbc);
+        
+        gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1.0;
+        txtControlName = new JTextField(20);
+        txtControlName.setToolTipText("Nombre del Content Control en el documento Word donde insertar la imagen");
+        panel.add(txtControlName, gbc);
+        
         return panel;
     }
 
@@ -201,38 +274,6 @@ public class PantallaPrincipal extends JFrame {
      * 
      * @return Panel con área de información
      */
-    private JPanel crearPanelInfo() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createTitledBorder("Información del Documento"));
-        
-        areaInfo = new JTextArea();
-        areaInfo.setEditable(false);
-        areaInfo.setLineWrap(true);
-        areaInfo.setWrapStyleWord(true);
-        areaInfo.setFont(new Font("Monospaced", Font.PLAIN, 10));
-        areaInfo.setText("Introduce XML y especifica la etiqueta a buscar.");
-        
-        JScrollPane scrollPane = new JScrollPane(areaInfo);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-        
-        panel.add(scrollPane, BorderLayout.CENTER);
-        
-        // Panel inferior para la imagen
-        JPanel imagePanel = new JPanel(new BorderLayout());
-        imagePanel.setBorder(BorderFactory.createTitledBorder("Imagen Extraída"));
-        imagePanel.setPreferredSize(new Dimension(200, 180));
-        
-        labelImagen.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
-        labelImagen.setHorizontalAlignment(SwingConstants.CENTER);
-        labelImagen.setVerticalAlignment(SwingConstants.CENTER);
-        labelImagen.setPreferredSize(new Dimension(180, 160));
-        
-        imagePanel.add(labelImagen, BorderLayout.CENTER);
-        panel.add(imagePanel, BorderLayout.SOUTH);
-        
-        return panel;
-    }
-
     /**
      * Crea el panel de botones
      * 
@@ -330,6 +371,18 @@ public class PantallaPrincipal extends JFrame {
                 } else {
                     info.append("ℹ Campo XML ya contiene contenido personalizado - no se sobrescribió.\n\n");
                 }
+                
+                // Buscar content controls especificados
+                String controlName = txtControlName.getText().trim();
+                if (!controlName.isEmpty()) {
+                    boolean encontrado = buscarContentControl(xmlContent, controlName);
+                    if (encontrado) {
+                        info.append("✓ Se encontró el Content Control: <").append(controlName).append(">.\n\n");
+                    } else {
+                        info.append("✗ NO se encontró el Content Control: <").append(controlName).append(">\n");
+                        info.append("  Disponibles en el documento.\n\n");
+                    }
+                }
             } else {
                 info.append("⚠ No se pudo extraer XML del documento.\n\n");
             }
@@ -394,21 +447,16 @@ public class PantallaPrincipal extends JFrame {
         try {
             // Usar directamente el XML proporcionado
             String templateData = xmlContent;
-            String TagXML = "firmaPeq";//NO TOCAR
             
             // Mostrar información de debug sobre el XML
             areaInfo.append("=== DEBUG: XML Analizado ===\n");
             
-            // Verificar si contiene el tag especificado
-            boolean contieneTag = templateData.toLowerCase().contains(TagXML);
-            areaInfo.append("¿Contiene <" + TagXML + ">? " + contieneTag + "\n");
+            // Verificar si contiene el tag especificado (case-insensitive)
+            boolean contieneTag = templateData.toLowerCase().contains("<" + tagName.toLowerCase() + ">");
+            areaInfo.append("¿Contiene <" + tagName + ">? " + contieneTag + "\n");
             
-            // Si contiene firmaPeq pero el usuario especificó otro tag, usar firmaPeq para la extracción
+            // Usar el tag especificado por el usuario para la extracción
             String tagToUse = tagName;
-            if (contieneTag && !tagName.equalsIgnoreCase(TagXML)) {
-                areaInfo.append("⚠ El XML contiene <" + TagXML + "> pero se buscó <" + tagName + ">. Usando <" + TagXML + "> para la extracción.\n");
-                tagToUse = TagXML;
-            }
             
             // Extraer imagen base64 del XML usando el tag especificado
             areaInfo.append("=== INICIANDO EXTRACCIÓN ===\n");
@@ -425,11 +473,33 @@ public class PantallaPrincipal extends JFrame {
                 areaInfo.append("✓ Imagen extraída del XML (" + formatearTamaño(imageBytes.length) + ")\n");
                 mostrarImagen(imageBytes);
                 
-                // Intentar insertar la imagen en el content control (si hay archivo seleccionado)
+                // Buscar si el content control existe en el documento Word (si está seleccionado)
                 if (documentSelector.hayArchivoSeleccionado()) {
-                    areaInfo.append("⚠ Para insertar la imagen en el documento, descomenta la dependencia de docx4j en pom.xml\n");
+                    String wordXmlContent = extraerXmlDelDocx(documentSelector.getFileContent());
+                    
+                    if (wordXmlContent != null) {
+                        cargarArbolComponentes(wordXmlContent);
+                    }
+                    
+                    String controlName = txtControlName.getText().trim();
+                    if (!controlName.isEmpty()) {
+                        if (wordXmlContent != null) {
+                            boolean encontrado = buscarContentControl(wordXmlContent, controlName);
+                            if (encontrado) {
+                                areaInfo.append("✓ Se encontró el Content Control <" + controlName + "> en el documento.\n");
+                                areaInfo.append("  ✓ Imagen lista para insertar en Word.\n");
+                            } else {
+                                areaInfo.append("✗ NO se encontró el Content Control <" + controlName + "> en el documento.\n");
+                                areaInfo.append("  ✗ Especifica un Content Control válido.\n");
+                            }
+                        } else {
+                            areaInfo.append("✗ No se pudo leer el XML del documento Word.\n");
+                        }
+                    } else {
+                        areaInfo.append("ℹ No se especificó Content Control - especifica uno para insertar en Word.\n");
+                    }
                 } else {
-                    areaInfo.append("ℹ Archivo no seleccionado - solo se extrajo la imagen del XML\n");
+                    areaInfo.append("ℹ Archivo Word no seleccionado - solo se extrajo la imagen del XML\n");
                 }
             } else {
                 areaInfo.append("ℹ No se encontró imagen en el campo <" + tagName + "> del XML\n");
@@ -494,6 +564,7 @@ public class PantallaPrincipal extends JFrame {
         labelArchivo.setText("Ninguno");
         txtXmlInput.setText("Pega aquí el contenido XML del documento...");
         txtTagName.setText("firmaPeq");
+        txtControlName.setText("imagenFirmaPeq");
         areaInfo.setText("Introduce XML y especifica la etiqueta a buscar.");
         labelImagen.setIcon(null);
         labelImagen.setText("Imagen extraída aparecerá aquí");
@@ -566,13 +637,14 @@ public class PantallaPrincipal extends JFrame {
                 if (entry.getName().equals("word/document.xml")) {
                     // Leer el contenido del archivo document.xml
                     ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                    byte[] buffer = new byte[1024];
+                    byte[] buffer = new byte[8192];
                     int len;
                     while ((len = zis.read(buffer)) > 0) {
                         baos.write(buffer, 0, len);
                     }
                     
-                    String xmlContent = baos.toString("UTF-8");
+                    // Usar UTF-8 explícitamente para la decodificación
+                    String xmlContent = new String(baos.toByteArray(), "UTF-8");
                     zis.closeEntry();
                     zis.close();
                     return xmlContent;
@@ -631,6 +703,96 @@ public class PantallaPrincipal extends JFrame {
     }
 
     /**
+     * Busca si existe un Content Control con el nombre especificado en el XML
+     * Usa la misma lógica que cargarArbolComponentes() para consistencia
+     * 
+     * @param xmlContent Contenido XML del documento
+     * @param controlName Nombre del Content Control a buscar
+     * @return true si se encontró, false en caso contrario
+     */
+    private boolean buscarContentControl(String xmlContent, String controlName) {
+        if (xmlContent == null || xmlContent.isEmpty() || controlName == null || controlName.isEmpty()) {
+            return false;
+        }
+        
+        // Usar la misma lógica que en cargarArbolComponentes()
+        int start = 0;
+        while ((start = xmlContent.indexOf("w:tag", start)) != -1) {
+            int valStart = xmlContent.indexOf("w:val=\"", start) + 7;
+            int valEnd = xmlContent.indexOf("\"", valStart);
+            if (valStart > 6 && valEnd > valStart) {
+                String extractedControlName = xmlContent.substring(valStart, valEnd);
+                if (extractedControlName.equals(controlName)) {
+                    return true;
+                }
+                start = valEnd;
+            } else {
+                break;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Carga el árbol de componentes del XML del documento Word
+     */
+    private void cargarArbolComponentes(String xmlContent) {
+        if (xmlContent == null || xmlContent.isEmpty()) {
+            javax.swing.tree.DefaultMutableTreeNode root = new javax.swing.tree.DefaultMutableTreeNode("Error: XML vacío");
+            arbolComponentes.setModel(new javax.swing.tree.DefaultTreeModel(root));
+            return;
+        }
+        
+        try {
+            javax.swing.tree.DefaultMutableTreeNode root = new javax.swing.tree.DefaultMutableTreeNode("document.xml");
+            
+            // Extraer elementos principales
+            if (xmlContent.contains("w:body")) {
+                javax.swing.tree.DefaultMutableTreeNode body = new javax.swing.tree.DefaultMutableTreeNode("Body");
+                root.add(body);
+                
+                // Contar párrafos
+                int paragraphs = xmlContent.split("<w:p>").length - 1;
+                body.add(new javax.swing.tree.DefaultMutableTreeNode("Párrafos: " + paragraphs));
+                
+                // Contar tablas
+                int tables = xmlContent.split("<w:tbl>").length - 1;
+                body.add(new javax.swing.tree.DefaultMutableTreeNode("Tablas: " + tables));
+                
+                // Buscar content controls (SdtBlock)
+                javax.swing.tree.DefaultMutableTreeNode controls = new javax.swing.tree.DefaultMutableTreeNode("Content Controls");
+                int controlCount = 0;
+                int start = 0;
+                while ((start = xmlContent.indexOf("w:tag", start)) != -1) {
+                    int valStart = xmlContent.indexOf("w:val=\"", start) + 7;
+                    int valEnd = xmlContent.indexOf("\"", valStart);
+                    if (valStart > 6 && valEnd > valStart) {
+                        String controlName = xmlContent.substring(valStart, valEnd);
+                        controls.add(new javax.swing.tree.DefaultMutableTreeNode(controlName));
+                        controlCount++;
+                        start = valEnd;
+                    } else {
+                        break;
+                    }
+                }
+                if (controlCount > 0) {
+                    body.add(controls);
+                }
+            }
+            
+            arbolComponentes.setModel(new javax.swing.tree.DefaultTreeModel(root));
+            
+            // Expandir nodos
+            for (int i = 0; i < arbolComponentes.getRowCount(); i++) {
+                arbolComponentes.expandRow(i);
+            }
+        } catch (Exception e) {
+            javax.swing.tree.DefaultMutableTreeNode root = new javax.swing.tree.DefaultMutableTreeNode("Error al parsear XML");
+            arbolComponentes.setModel(new javax.swing.tree.DefaultTreeModel(root));
+        }
+    }
+
+    /**
      * Establece una imagen en el label a partir de datos en bytes
      */
     private void mostrarImagen(byte[] imageBytes) {
@@ -639,7 +801,7 @@ public class PantallaPrincipal extends JFrame {
             if (img != null) {
                 // Escalar la imagen si es muy grande
                 int maxWidth = 150;
-                int maxHeight = 150;
+                int maxHeight = 60;
                 if (img.getWidth() > maxWidth || img.getHeight() > maxHeight) {
                     double scaleX = (double) maxWidth / img.getWidth();
                     double scaleY = (double) maxHeight / img.getHeight();
@@ -663,6 +825,105 @@ public class PantallaPrincipal extends JFrame {
             e.printStackTrace();
         }
     }
+
+
+    // COMENTADO: Funcionalidad de docx4j requiere ejecutar con mvn exec:java@run
+    // Estos métodos fueron deshabilitados por incompatibilidad de classpath en ejecución directa
+    /*
+    private void insertarImagenEnContentControl(WordprocessingMLPackage wordMLPackage, String tagName, byte[] imageBytes) throws Exception {
+        MainDocumentPart mdp = wordMLPackage.getMainDocumentPart();
+        Document doc = mdp.getContents();
+        
+        // Buscar todos los SdtBlock (content controls) en el documento
+        List<Object> allElements = getAllElements(doc.getBody());
+        boolean imagenInsertada = false;
+        
+        for (Object obj : allElements) {
+            if (obj instanceof SdtBlock) {
+                SdtBlock sdtBlock = (SdtBlock) obj;
+                SdtPr sdtPr = sdtBlock.getSdtPr();
+                
+                if (sdtPr != null && sdtPr.getTag() != null) {
+                    String controlTag = sdtPr.getTag().getVal();
+                    
+                    if (controlTag != null && controlTag.equalsIgnoreCase(tagName)) {
+                        // Encontrado el content control correcto
+                        SdtContent sdtContent = sdtBlock.getSdtContent();
+                        
+                        // Limpiar contenido previo
+                        sdtContent.getContent().clear();
+                        
+                        // Crear un párrafo con información sobre la imagen insertada
+                        P p = new P();
+                        R r = new R();
+                        Text text = new Text();
+                        text.setValue("[Imagen insertada: " + formatearTamaño(imageBytes.length) + "]");
+                        r.getContent().add(text);
+                        p.getContent().add(r);
+                        
+                        sdtContent.getContent().add(p);
+                        imagenInsertada = true;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        if (!imagenInsertada) {
+            throw new Exception("No se encontró un content control con la etiqueta: " + tagName);
+        }
+    }
+
+    private List<Object> getAllElements(Object container) {
+        java.util.List<Object> result = new java.util.ArrayList<>();
+        
+        if (container instanceof Body) {
+            Body body = (Body) container;
+            for (Object obj : body.getContent()) {
+                result.add(obj);
+                result.addAll(getAllElements(obj));
+            }
+        } else if (container instanceof Tbl) {
+            Tbl table = (Tbl) container;
+            for (Object obj : table.getContent()) {
+                result.add(obj);
+                result.addAll(getAllElements(obj));
+            }
+        } else if (container instanceof Tr) {
+            Tr row = (Tr) container;
+            for (Object obj : row.getContent()) {
+                result.add(obj);
+                result.addAll(getAllElements(obj));
+            }
+        } else if (container instanceof Tc) {
+            Tc cell = (Tc) container;
+            for (Object obj : cell.getContent()) {
+                result.add(obj);
+                result.addAll(getAllElements(obj));
+            }
+        } else if (container instanceof P) {
+            P para = (P) container;
+            for (Object obj : para.getContent()) {
+                result.add(obj);
+                result.addAll(getAllElements(obj));
+            }
+        } else if (container instanceof SdtBlock) {
+            SdtBlock sdt = (SdtBlock) container;
+            result.add(sdt);
+            if (sdt.getSdtContent() != null) {
+                result.addAll(getAllElements(sdt.getSdtContent()));
+            }
+        } else if (container instanceof SdtContent) {
+            SdtContent content = (SdtContent) container;
+            for (Object obj : content.getContent()) {
+                result.add(obj);
+                result.addAll(getAllElements(obj));
+            }
+        }
+        
+        return result;
+    }
+    */
 
     /**
      * Punto de entrada de la aplicación
