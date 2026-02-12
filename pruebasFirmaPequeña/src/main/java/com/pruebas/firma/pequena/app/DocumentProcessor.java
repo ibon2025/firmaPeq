@@ -127,8 +127,9 @@ public class DocumentProcessor {
             String newImageContent = imageProcessor.crearElementoImagenWord(imageBytes, zipContents, areaInfo);
             
             // Construir el nuevo SDT reemplazando el contenido
+            // Limpiador: eliminar cualquier formato anterior y mantener solo la imagen
             String nuevoSdt = originalSdt.substring(0, contentStartIndex + "<w:sdtContent>".length()) +
-                            newImageContent +
+                            "\n" + newImageContent + "\n" +
                             originalSdt.substring(contentEndIndex);
             
             // Reemplazar en el documento

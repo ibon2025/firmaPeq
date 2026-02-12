@@ -117,11 +117,8 @@ public class ImageProcessor {
             
             areaInfo.append("EMU calculados: " + widthEmu + " x " + heightEmu + "\n");
             
-            String imageXml = "<w:p xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\" " +
-                            "xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\" " +
-                            "xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" " +
-                            "xmlns:pic=\"http://schemas.openxmlformats.org/drawingml/2006/picture\" " +
-                            "xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">" +
+            // XML para párrafo con imagen vinculada correctamente
+            String imageXml = "<w:p>" +
                             "<w:pPr>" +
                             "<w:pStyle w:val=\"Normal\"/>" +
                             "<w:jc w:val=\"left\"/>" +
@@ -129,22 +126,22 @@ public class ImageProcessor {
                             "<w:r>" +
                             "<w:rPr/>" +
                             "<w:drawing>" +
-                            "<wp:inline distT=\"0\" distB=\"0\" distL=\"0\" distR=\"0\">" +
+                            "<wp:inline distT=\"0\" distB=\"0\" distL=\"0\" distR=\"0\" xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\">" +
                             "<wp:extent cx=\"" + widthEmu + "\" cy=\"" + heightEmu + "\"/>" +
                             "<wp:effectExtent l=\"0\" t=\"0\" r=\"0\" b=\"0\"/>" +
                             "<wp:docPr id=\"1\" name=\"Firma\"/>" +
                             "<wp:cNvGraphicFramePr>" +
-                            "<a:graphicFrameLocks xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" noChangeAspect=\"1\"/>" +
+                            "<a:graphicFrameLocks noChangeAspect=\"1\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"/>" +
                             "</wp:cNvGraphicFramePr>" +
                             "<a:graphic xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\">" +
                             "<a:graphicData uri=\"http://schemas.openxmlformats.org/drawingml/2006/picture\">" +
                             "<pic:pic xmlns:pic=\"http://schemas.openxmlformats.org/drawingml/2006/picture\">" +
                             "<pic:nvPicPr>" +
-                            "<pic:cNvPr id=\"0\" name=\"Firma.png\"/>" +
+                            "<pic:cNvPr id=\"1\" name=\"Firma.png\"/>" +
                             "<pic:cNvPicPr/>" +
                             "</pic:nvPicPr>" +
                             "<pic:blipFill>" +
-                            "<a:blip r:embed=\"rId" + newRelId + "\"/>" +
+                            "<a:blip r:embed=\"rId" + newRelId + "\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"/>" +
                             "<a:stretch>" +
                             "<a:fillRect/>" +
                             "</a:stretch>" +

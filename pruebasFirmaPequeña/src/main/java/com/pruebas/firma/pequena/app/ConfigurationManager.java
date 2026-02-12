@@ -9,7 +9,7 @@ import java.util.Properties;
  */
 public class ConfigurationManager {
     
-    private static final String CONFIG_FILE = System.getProperty("user.home") + File.separator + ".pruebasFirmaPequeña.properties";
+    private static final String CONFIG_FILE = new File(System.getProperty("user.dir"), ".pruebasFirmaPequeña.properties").getAbsolutePath();
     private static final String LAST_XML_KEY = "lastXmlContent";
     private static final String LAST_TAG_KEY = "lastTagName";
     

@@ -98,7 +98,6 @@ public class UIComponentBuilder {
         components.txtXmlInput.setLineWrap(true);
         components.txtXmlInput.setWrapStyleWord(true);
         components.txtXmlInput.setFont(new Font("Monospaced", Font.PLAIN, 10));
-        components.txtXmlInput.setToolTipText("Pega el contenido XML extraído del documento .docx");
         
         JScrollPane xmlScroll = new JScrollPane(components.txtXmlInput);
         xmlScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
